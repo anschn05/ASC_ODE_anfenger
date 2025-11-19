@@ -1,7 +1,8 @@
 #include <iostream>
+#include <fstream> 
 
 #include <nonlinfunc.hpp>
-#include <ode.hpp>
+#include <timestepper.hpp>
 #include <implicitRK.hpp>
 
 using namespace ASC_ode;
@@ -9,20 +10,27 @@ using namespace ASC_ode;
 
 class MassSpring : public NonlinearFunction
 {
+private:
+  double mass;
+  double stiffness;
+
+public:
+  MassSpring(double m, double k) : mass(m), stiffness(k) {}
+
   size_t dimX() const override { return 2; }
   size_t dimF() const override { return 2; }
   
   void evaluate (VectorView<double> x, VectorView<double> f) const override
   {
     f(0) = x(1);
-    f(1) = -x(0);
+    f(1) = -stiffness/mass*x(0);
   }
   
   void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
   {
     df = 0.0;
     df(0,1) = 1;
-    df(1,0) = -1;
+    df(1,0) = -stiffness/mass;
   }
 };
 
@@ -31,36 +39,62 @@ int main()
 {
   double tend = 4*M_PI;
   int steps = 100;
+  double tau = tend/steps;
+
   Vector<> y = { 1, 0 };  // initializer list
-  auto rhs = std::make_shared<MassSpring>();
-  /*
-  solveODE_IE(tend, steps, y, rhs,
-              [](double t, VectorView<double> y) { std::cout << t << "  " << y(0) << " " << y(1) << std::endl; });
-*/
+  auto rhs = std::make_shared<MassSpring>(1.0, 1.0);
 
 
-
-  auto [a,b] = ComputeABfromC (Gauss3c);
-  SolveODE_RK(tend, steps, a, b, Gauss3c, y, rhs, 
-              [](double t, VectorView<double> y) { std::cout << t << "  " << y(0) << " " << y(1) << std::endl; });
 
 /*
-  cout << "Gauss3c = " << Gauss3c << endl;
-  cout << "weights = " << b << endl;
-  GaussLegendre (Gauss3c, b);
-  cout << "with generic function, c = " << Gauss3c << ", weights = " << b << endl;
-
-
   Vector<> Radau(3), RadauWeight(3);
   GaussRadau (Radau, RadauWeight);
   // not sure about weights, comput them via ComputeABfromC
   cout << "Radau = " << Radau << ", weight = " << RadauWeight <<  endl;
- */
-
+        Vector<> Gauss2c(2), Gauss3c(3);
+*/
  
+
+  // ExplicitEuler stepper(rhs);
+  // ImplicitEuler stepper(rhs);
+
+  // RungeKutta stepper(rhs, Gauss2a, Gauss2b, Gauss2c);
+
+  // Gauss3c .. points tabulated, compute a,b:
+  auto [Gauss3a,Gauss3b] = ComputeABfromC (Gauss3c);
+  ImplicitRungeKutta stepper(rhs, Gauss3a, Gauss3b, Gauss3c);
+
+
   /*
-  SolveODE_RK(tend, steps, Gauss2a, Gauss2b, Gauss2c, y, rhs, 
-              [](double t, VectorView<double> y) { cout << t << "  " << y(0) << " " << y(1) << endl; });
+  // arbitrary order Gauss-Legendre
+  int stages = 5;
+  Vector<> c(stages), b1(stages);
+  GaussLegendre(c, b1);
+
+  auto [a, b] = ComputeABfromC(c);
+  ImplicitRungeKutta stepper(rhs, a, b, c);
   */
 
+  /* 
+  // arbitrary order Radau
+  int stages = 5;
+  Vector<> c(stages), b1(stages);
+  GaussRadau(c, b1);
+
+  auto [a, b] = ComputeABfromC(c);
+  ImplicitRungeKutta stepper(rhs, a, b, c);
+  */
+
+
+  std::ofstream outfile ("output_test_ode.txt");
+  std::cout << 0.0 << "  " << y(0) << " " << y(1) << std::endl;
+  outfile << 0.0 << "  " << y(0) << " " << y(1) << std::endl;
+
+  for (int i = 0; i < steps; i++)
+  {
+     stepper.DoStep(tau, y);
+
+     std::cout << (i+1) * tau << "  " << y(0) << " " << y(1) << std::endl;
+     outfile << (i+1) * tau << "  " << y(0) << " " << y(1) << std::endl;
+  }
 }

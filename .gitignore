@@ -31,6 +31,10 @@
 *.out
 *.app
 
+
 build
 mass_spring/.ipynb_checkpoints
 .vscode
+
+docs/_build
+demos/output*.txt

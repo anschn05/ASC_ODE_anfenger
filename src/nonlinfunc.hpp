@@ -1,6 +1,9 @@
 #ifndef NONLINFUNC_H
 #define NONLINFUNC_H
 
+#include <cstddef>
+#include <memory>
+
 #include <vector.hpp>
 #include <matrix.hpp>
 
@@ -44,7 +47,8 @@ namespace ASC_ode
   {
     Vector<> m_val;
   public:
-    ConstantFunction (VectorView<double> val) : m_val(val) { }
+    ConstantFunction(size_t n) : m_val(n) { }
+    ConstantFunction(VectorView<double> val) : m_val(val) { }
     void set(VectorView<double> val) { m_val = val; }
     VectorView<double> get() const { return m_val; }
     size_t dimX() const override { return m_val.size(); }
@@ -102,14 +106,22 @@ namespace ASC_ode
     return std::make_shared<SumFunction>(fa, fb, 1, 1);
   }
 
-  
+  class Parameter 
+  {
+    double m_value;
+  public:
+    Parameter(double value) : m_value(value) {}
+    double get() const { return m_value; }
+    void set(double value) { m_value = value; }
+  };
+
   class ScaleFunction : public NonlinearFunction
   {
     std::shared_ptr<NonlinearFunction> m_fa;
-    double m_fac;
+    std::shared_ptr<Parameter> m_fac;
   public:
     ScaleFunction (std::shared_ptr<NonlinearFunction> fa,
-                   double fac)
+                   std::shared_ptr<Parameter> fac)
       : m_fa(fa), m_fac(fac) { }
 
     size_t dimX() const override { return m_fa->dimX(); }
@@ -117,20 +129,26 @@ namespace ASC_ode
     void evaluate (VectorView<double> x, VectorView<double> f) const override
     {
       m_fa->evaluate(x, f);
-      f *= m_fac;
+      f *= m_fac->get();
+   }
 
-    }
     void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
     {
       m_fa->evaluateDeriv(x, df);
-      df *= m_fac;
+      df *= m_fac->get();
     }
   };
 
+  inline auto operator* (std::shared_ptr<Parameter> parama, 
+                         std::shared_ptr<NonlinearFunction> f)
+  {
+    return std::make_shared<ScaleFunction>(f, parama);
+  }
+
   inline auto operator* (double a, std::shared_ptr<NonlinearFunction> f)
   {
-    return std::make_shared<ScaleFunction>(f, a);
-  }
+    return std::make_shared<Parameter>(a) * f;
+  } 
 
 
 
@@ -238,15 +256,15 @@ namespace ASC_ode
       fdimf = func->dimF();
     }
 
-    virtual size_t dimX() const { return num * fdimx; } 
-    virtual size_t dimF() const { return num * fdimf; }
-    virtual void evaluate (VectorView<double> x, VectorView<double> f) const
+    virtual size_t dimX() const override { return num * fdimx; } 
+    virtual size_t dimF() const override{ return num * fdimf; }
+    virtual void evaluate (VectorView<double> x, VectorView<double> f) const override
     {
       for (size_t i = 0; i < num; i++)
         func->evaluate(x.range(i*fdimx, (i+1)*fdimx),
                        f.range(i*fdimf, (i+1)*fdimf));
     }
-    virtual void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const
+    virtual void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
     {
       df = 0.0;
       for (size_t i = 0; i < num; i++)
@@ -258,26 +276,26 @@ namespace ASC_ode
 
   class MatVecFunc : public NonlinearFunction
   {
-    Matrix<> a;
-    size_t n;
+    Matrix<> m_a;
+    size_t m_n;
   public:
-    MatVecFunc (Matrix<> _a, size_t _n)
-      : a(_a), n(_n) { }
+    MatVecFunc (Matrix<> a, size_t n)
+      : m_a(a), m_n(n) { }
 
-    virtual size_t dimX() const { return n*a.rows(); } 
-    virtual size_t dimF() const { return n*a.cols(); }
-    virtual void evaluate (VectorView<double> x, VectorView<double> f) const
+    virtual size_t dimX() const override { return m_n*m_a.rows(); } 
+    virtual size_t dimF() const override { return m_n*m_a.cols(); }
+    virtual void evaluate (VectorView<double> x, VectorView<double> f) const override
     {
-      MatrixView<double> mx(a.cols(), n, n, x.data());
-      MatrixView<double> mf(a.rows(), n, n, f.data());
-      mf = a * mx;
+      MatrixView<double> mx(m_a.cols(), m_n, m_n, x.data());
+      MatrixView<double> mf(m_a.rows(), m_n, m_n, f.data());
+      mf = m_a * mx;
     }
-    virtual void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const
+    virtual void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
     {
       df = 0.0;
-      for (size_t i = 0; i < a.rows(); i++)
-        for (size_t j = 0; j < a.cols(); j++)
-          df.rows(i*n, (i+1)*n).cols(j*n, (j+1)*n).diag() = a(i,j);
+      for (size_t i = 0; i < m_a.rows(); i++)
+        for (size_t j = 0; j < m_a.cols(); j++)
+          df.rows(i*m_n, (i+1)*m_n).cols(j*m_n, (j+1)*m_n).diag() = m_a(i,j);
     }
   };
 

@@ -8,9 +8,56 @@
 namespace ASC_ode {
   using namespace nanoblas;
 
+
+
+  class ImplicitRungeKutta : public TimeStepper
+  {
+    Matrix<> m_a;
+    Vector<> m_b, m_c;
+    std::shared_ptr<NonlinearFunction> m_equ;
+    std::shared_ptr<Parameter> m_tau;
+    std::shared_ptr<ConstantFunction> m_yold;
+    int m_stages;
+    int m_n;
+    Vector<> m_k, m_y;
+  public:
+    ImplicitRungeKutta(std::shared_ptr<NonlinearFunction> rhs,
+      const Matrix<> &a, const Vector<> &b, const Vector<> &c) 
+    : TimeStepper(rhs), m_a(a), m_b(b), m_c(c),
+    m_tau(std::make_shared<Parameter>(0.0)),
+    m_stages(c.size()), m_n(rhs->dimX()), m_k(m_stages*m_n), m_y(m_stages*m_n)
+    {
+      auto multiple_rhs = make_shared<MultipleFunc>(rhs, m_stages);
+      m_yold = std::make_shared<ConstantFunction>(m_stages*m_n);
+      auto knew = std::make_shared<IdentityFunction>(m_stages*m_n);
+      m_equ = knew - Compose(multiple_rhs, m_yold+m_tau*std::make_shared<MatVecFunc>(a, m_n));
+    }
+
+    void DoStep(double tau, VectorView<double> y) override
+    {
+      for (int j = 0; j < m_stages; j++)
+        m_y.range(j*m_n, (j+1)*m_n) = y;
+      m_yold->set(m_y);
+
+      m_tau->set(tau);
+      m_k = 0.0;  
+      NewtonSolver(m_equ, m_k);
+
+      for (int j = 0; j < m_stages; j++)
+        y += tau * m_b(j) * m_k.range(j*m_n, (j+1)*m_n);
+    }
+  };
+
+
+
+
+
+
+
 Matrix<double> Gauss2a { { 0.25, 0.25 - sqrt(3)/6 }, { 0.25 + sqrt(3)/6, 0.25 } };
 Vector<> Gauss2b { 0.5, 0.5 };
 Vector<> Gauss2c { 0.5 - sqrt(3)/6, 0.5 + sqrt(3)/6 };
+
 
 Vector<> Gauss3c { 0.5 - sqrt(15)/10, 0.5, 0.5+sqrt(15)/10 };
 
@@ -128,12 +175,14 @@ void GaussJacobi (VectorView<> x, VectorView<> w, const double alf, const double
 
 
 
-
+/*
+  given Runge-Kutta nodes c, compute the coefficients a and b
+*/
 auto ComputeABfromC (const Vector<> & c)
 {
   int s = c.size();
-  Matrix M(s, s);
-  Vector tmp(s);
+  Matrix<> M(s, s);
+  Vector<> tmp(s);
   
   for (int i = 0; i < s; i++)
     for (int j = 0; j < s; j++)
@@ -145,9 +194,7 @@ auto ComputeABfromC (const Vector<> & c)
   for (int i = 0; i < s; i++)
     tmp(i) = 1.0 / (i+1);
 
-  Vector b = M * tmp;
-  std::cout << "b = " << b << std::endl;
-
+  Vector<> b = M * tmp;
   Matrix a(s,s);
 
   for (int j = 0; j < s; j++)
@@ -157,8 +204,8 @@ auto ComputeABfromC (const Vector<> & c)
       a.row(j) = M * tmp;
     }
   /*
-  cout << "b = " << b << endl;
-  cout << "a = " << a << endl;
+  std::cout << "b = " << b << std::endl;
+  std::cout << "a = " << a << std::endl;
   */
   return std::tuple { a, b };
 }
