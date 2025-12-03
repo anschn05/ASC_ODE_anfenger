@@ -43,7 +43,7 @@ int main()
   Vector<> y = { 1, 0 };  // initializer list
   auto rhs = std::make_shared<MassSpring>(1.0, 1.0);
   
-  ImprovedEuler stepper(rhs);
+  CrankNicolson stepper(rhs);
   // ImplicitEuler stepper(rhs);
 
   std::ofstream outfile ("output_test_ode.txt");
