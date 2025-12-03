@@ -54,9 +54,23 @@ namespace ASC_ode
       NewtonSolver(m_equ, y);
     }
   };
+  class ImprovedEuler : public TimeStepper
+  {
+    Vector<> m_vecf;
+  public:
+    ImprovedEuler(std::shared_ptr<NonlinearFunction> rhs) 
+    : TimeStepper(rhs), m_vecf(rhs->dimF()) {}
 
 
-  
+    void doStep(double tau, VectorView<double> y) override
+    {
+      this->m_rhs->evaluate(y, m_vecf);
+      Vector<double> y_welle = y + tau/2 * m_vecf;
+
+      this->m_rhs->evaluate(y_welle, m_vecf);
+      y += tau * m_vecf;
+    }
+  };
 
 }
 
