@@ -10,7 +10,6 @@
 #include <timestepper.hpp>
 #include <implicitRK.hpp>
 
-
 using namespace ASC_ode;
 
 
@@ -69,15 +68,15 @@ public:
 };
 
 
-
 int main()
 {
   double tend = 0.1;
   int steps = 1000;
   double tau = tend/steps;
 
-  Vector<> y = { 1, 0 };  // initializer list
-  auto rhs = std::make_shared<MassSpring>(1.0, 1.0);
+  Vector<> y = { 0, 0 };  // initializer list
+  auto rhs = std::make_shared<RCSpring>(100.0, 1e-6);
+  
 
 
 
@@ -86,18 +85,17 @@ int main()
   GaussRadau (Radau, RadauWeight);
   // not sure about weights, comput them via ComputeABfromC
   cout << "Radau = " << Radau << ", weight = " << RadauWeight <<  endl;
-        Vector<> Gauss2c(2), Gauss3c(3);
 */
  
 
   // ExplicitEuler stepper(rhs);
   // ImplicitEuler stepper(rhs);
 
-  // RungeKutta stepper(rhs, Gauss2a, Gauss2b, Gauss2c);
+  ImplicitRungeKutta stepper(rhs, Gauss2a, Gauss2b, Gauss2c);
 
   // Gauss3c .. points tabulated, compute a,b:
-  auto [Gauss3a,Gauss3b] = computeABfromC (Gauss3c);
-  ImplicitRungeKutta stepper(rhs, Gauss3a, Gauss3b, Gauss3c);
+  // auto [Gauss3a,Gauss3b] = computeABfromC (Gauss3c);
+  // ImplicitRungeKutta stepper(rhs, Gauss3a, Gauss3b, Gauss3c);
 
 
   /*
@@ -110,7 +108,7 @@ int main()
   ImplicitRungeKutta stepper(rhs, a, b, c);
   */
 
-  /* 
+  /*
   // arbitrary order Radau
   int stages = 5;
   Vector<> c(stages), b1(stages);
