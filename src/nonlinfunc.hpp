@@ -6,6 +6,7 @@
 
 #include <vector.hpp>
 #include <matrix.hpp>
+#include "autodiff.hpp"
 
 namespace ASC_ode
 {
@@ -243,6 +244,29 @@ namespace ASC_ode
     }
   };
 
+  
+  template <typename NLF>
+  class NonlinearFunctionAutoDif : public NonlinearFunction {
+  public:
+
+   void evaluate(VectorView<double> x, VectorView<double> f) const override {
+    static_cast<const NLF*>(this) -> T_evaluate(x, f);
+  }
+
+  void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const override {
+    Vector<AutoDiff<1>> adx(dimX());
+    Vector<AutoDiff<1>> adf(dimF());
+
+    for (int i = 0; i < dimX(); i++) {
+      for (int j = 0; j < dimX(); j++)
+        adx(j) = x(j);
+      adx(i) = Variable<0>(x(i));
+      static_cast<const NLF*>(this) -> T_evaluate(adx, adf);
+      for (int j = 0; j < dimF(); j++)
+        df(j,i) = adf(j).deriv()[0];
+    }
+  }  
+};
   
 }
 
