@@ -244,7 +244,7 @@ namespace ASC_ode
     }
   };
 
-  
+
   template <typename NLF>
   class NonlinearFunctionAutoDif : public NonlinearFunction {
   public:
@@ -267,6 +267,40 @@ namespace ASC_ode
     }
   }  
 };
+
+  // Beispiel-Klasse für NonlinearFunctionAutoDif
+  class MyFunc : public NonlinearFunctionAutoDif<MyFunc> {
+  public:
+    size_t dimX() const override { return 2; }
+    size_t dimF() const override { return 2; }
+
+    template <typename T>
+    void T_evaluate(VectorView<T> x, VectorView<T> f) const {
+      f(0) = x(0) * x(0) + x(1);
+      f(1) = x(0) - x(1) * x(1);
+    }
+  };
+
+  // Pendel-Funktion mit Autodiff
+  class PendulumAD : public NonlinearFunctionAutoDif<PendulumAD> {
+  private:
+    double m_length;
+    double m_gravity;
+
+  public:
+    PendulumAD(double length, double gravity = 9.81) 
+      : m_length(length), m_gravity(gravity) {}
+
+    size_t dimX() const override { return 2; }
+    size_t dimF() const override { return 2; }
+
+    template <typename T>
+    void T_evaluate(VectorView<T> x, VectorView<T> f) const {
+      f(0) = x(1);
+      f(1) = T(m_gravity / m_length) * T(-1.0) * sin(x(0));
+    }
+  };
+
   
 }
 
