@@ -9,6 +9,7 @@
 #include <nonlinfunc.hpp>
 #include <timestepper.hpp>
 #include <implicitRK.hpp>
+#include <explicitRK.hpp>
 
 using namespace ASC_ode;
 
@@ -70,12 +71,12 @@ public:
 
 int main()
 {
-  double tend = 0.1;
+  double tend = 4*M_PI;
   int steps = 1000;
   double tau = tend/steps;
 
-  Vector<> y = { 0, 0 };  // initializer list
-  auto rhs = std::make_shared<RCSpring>(100.0, 1e-6);
+  Vector<> y = { 1, 0 };  // initializer list
+  auto rhs = std::make_shared<MassSpring>(1.0, 1.0);
   
 
 
@@ -117,6 +118,7 @@ int main()
   auto [a, b] = computeABfromC(c);
   ImplicitRungeKutta stepper(rhs, a, b, c);
   */
+  // ExplicitRungeKutta stepper(rhs, Gauss2a, Gauss2b, Gauss2c);
 
 
   std::ofstream outfile ("output_test_ode.txt");
