@@ -8,7 +8,8 @@
 
 #include <nonlinfunc.hpp>
 #include <timestepper.hpp>
-
+#include <implicitRK.hpp>
+#include <explicitRK.hpp>
 
 using namespace ASC_ode;
 
@@ -39,18 +40,86 @@ public:
   }
 };
 
+class RCSpring : public NonlinearFunction
+{
+private:
+  double R;
+  double C;
+
+public:
+  RCSpring(double m, double k) : R(m), C(k) {}
+
+  size_t dimX() const override { return 2; }
+  size_t dimF() const override { return 2; }
+  
+  void evaluate (VectorView<double> x, VectorView<double> f) const override
+  {
+    
+    f(0) = 1/(R*C)*(cos((M_PI*x(1)*100)) - x(0));
+    f(1) = 1;
+  }
+  
+  void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
+  {
+    df = 0.0;
+    df(0,0) = -1/(R*C);
+    df(0,1) = -1/(R*C)*100*M_PI*sin(M_PI*x(1)*100);
+    df(1,1) = 0;
+  }
+};
+
 
 int main()
 {
   double tend = 4*M_PI;
-  int steps = 100;
+  int steps = 1000;
   double tau = tend/steps;
 
   Vector<> y = { 1, 0 };  // initializer list
   auto rhs = std::make_shared<MassSpring>(1.0, 1.0);
   
-  CrankNicolson stepper(rhs);
+
+
+
+/*
+  Vector<> Radau(3), RadauWeight(3);
+  GaussRadau (Radau, RadauWeight);
+  // not sure about weights, comput them via ComputeABfromC
+  cout << "Radau = " << Radau << ", weight = " << RadauWeight <<  endl;
+*/
+ 
+
+  // ExplicitEuler stepper(rhs);
   // ImplicitEuler stepper(rhs);
+
+  ImplicitRungeKutta stepper(rhs, Gauss2a, Gauss2b, Gauss2c);
+
+  // Gauss3c .. points tabulated, compute a,b:
+  // auto [Gauss3a,Gauss3b] = computeABfromC (Gauss3c);
+  // ImplicitRungeKutta stepper(rhs, Gauss3a, Gauss3b, Gauss3c);
+
+
+  /*
+  // arbitrary order Gauss-Legendre
+  int stages = 5;
+  Vector<> c(stages), b1(stages);
+  GaussLegendre(c, b1);
+
+  auto [a, b] = computeABfromC(c);
+  ImplicitRungeKutta stepper(rhs, a, b, c);
+  */
+
+  /*
+  // arbitrary order Radau
+  int stages = 5;
+  Vector<> c(stages), b1(stages);
+  GaussRadau(c, b1);
+
+  auto [a, b] = computeABfromC(c);
+  ImplicitRungeKutta stepper(rhs, a, b, c);
+  */
+  // ExplicitRungeKutta stepper(rhs, Gauss2a, Gauss2b, Gauss2c);
+
 
   std::ofstream outfile ("output_test_ode.txt");
   std::cout << 0.0 << "  " << y(0) << " " << y(1) << std::endl;

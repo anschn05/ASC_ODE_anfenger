@@ -21,4 +21,3 @@ plt.title('Mass-Spring System Phase Plot')
 plt.legend()
 plt.grid()
 plt.show()
-

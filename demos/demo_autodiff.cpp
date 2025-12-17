@@ -8,8 +8,8 @@ using namespace ASC_ode;
 template <typename T>
 T func1 (T x, T y)
 {
-  return x * sin(y);
-  // return 1e6 + y;
+  // return x * sin(y);
+  return 1e6 + y;
 }
 
 

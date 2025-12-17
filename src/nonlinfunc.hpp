@@ -6,6 +6,7 @@
 
 #include <vector.hpp>
 #include <matrix.hpp>
+#include "autodiff.hpp"
 
 namespace ASC_ode
 {
@@ -243,7 +244,119 @@ namespace ASC_ode
     }
   };
 
+
+  template <typename NLF>
+  class NonlinearFunctionAutoDif : public NonlinearFunction {
+  public:
+
+   void evaluate(VectorView<double> x, VectorView<double> f) const override {
+    static_cast<const NLF*>(this) -> T_evaluate(x, f);
+  }
+
+  void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const override {
+    Vector<AutoDiff<1>> adx(dimX());
+    Vector<AutoDiff<1>> adf(dimF());
+
+    for (int i = 0; i < dimX(); i++) {
+      for (int j = 0; j < dimX(); j++)
+        adx(j) = x(j);
+      adx(i) = Variable<0>(x(i));
+      static_cast<const NLF*>(this) -> T_evaluate(adx, adf);
+      for (int j = 0; j < dimF(); j++)
+        df(j,i) = adf(j).deriv()[0];
+    }
+  }  
+};
+
+  // Beispiel-Klasse für NonlinearFunctionAutoDif
+  class MyFunc : public NonlinearFunctionAutoDif<MyFunc> {
+  public:
+    size_t dimX() const override { return 2; }
+    size_t dimF() const override { return 2; }
+
+    template <typename T>
+    void T_evaluate(VectorView<T> x, VectorView<T> f) const {
+      f(0) = x(0) * x(0) + x(1);
+      f(1) = x(0) - x(1) * x(1);
+    }
+  };
+
+  // Pendel-Funktion mit Autodiff
+  class PendulumAD : public NonlinearFunctionAutoDif<PendulumAD> {
+  private:
+    double m_length;
+    double m_gravity;
+
+  public:
+    PendulumAD(double length, double gravity = 9.81) 
+      : m_length(length), m_gravity(gravity) {}
+
+    size_t dimX() const override { return 2; }
+    size_t dimF() const override { return 2; }
+
+    template <typename T>
+    void T_evaluate(VectorView<T> x, VectorView<T> f) const {
+      f(0) = x(1);
+      f(1) = T(m_gravity / m_length) * T(-1.0) * sin(x(0));
+    }
+  };
+
   
+  class MultipleFunc : public NonlinearFunction
+  {
+    std::shared_ptr<NonlinearFunction> func;
+    size_t num, fdimx, fdimf;
+  public:
+    MultipleFunc (std::shared_ptr<NonlinearFunction> _func, int _num)
+      : func(_func), num(_num)
+    {
+      fdimx = func->dimX();
+      fdimf = func->dimF();
+    }
+
+    virtual size_t dimX() const override { return num * fdimx; } 
+    virtual size_t dimF() const override{ return num * fdimf; }
+    virtual void evaluate (VectorView<double> x, VectorView<double> f) const override
+    {
+      for (size_t i = 0; i < num; i++)
+        func->evaluate(x.range(i*fdimx, (i+1)*fdimx),
+                       f.range(i*fdimf, (i+1)*fdimf));
+    }
+    virtual void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
+    {
+      df = 0.0;
+      for (size_t i = 0; i < num; i++)
+        func->evaluateDeriv(x.range(i*fdimx, (i+1)*fdimx),
+                            df.rows(i*fdimf, (i+1)*fdimf).cols(i*fdimx, (i+1)*fdimx));
+    }
+  };
+
+
+  class MatVecFunc : public NonlinearFunction
+  {
+    Matrix<> m_a;
+    size_t m_n;
+  public:
+    MatVecFunc (Matrix<> a, size_t n)
+      : m_a(a), m_n(n) { }
+
+    virtual size_t dimX() const override { return m_n*m_a.rows(); } 
+    virtual size_t dimF() const override { return m_n*m_a.cols(); }
+    virtual void evaluate (VectorView<double> x, VectorView<double> f) const override
+    {
+      MatrixView<double> mx(m_a.cols(), m_n, m_n, x.data());
+      MatrixView<double> mf(m_a.rows(), m_n, m_n, f.data());
+      mf = m_a * mx;
+    }
+    virtual void evaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
+    {
+      df = 0.0;
+      for (size_t i = 0; i < m_a.rows(); i++)
+        for (size_t j = 0; j < m_a.cols(); j++)
+          df.rows(i*m_n, (i+1)*m_n).cols(j*m_n, (j+1)*m_n).diag() = m_a(i,j);
+    }
+  };
+
 }
 
 #endif
