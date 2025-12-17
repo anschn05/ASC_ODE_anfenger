@@ -196,5 +196,51 @@ public:
   }
   
 };
+// Distance constraints enforced via Lagrange multipliers
+template <int D>
+class DistanceConstraint
+{
+public:
+  std::array<Connector,2> connectors;
+  double target_distance;
+  double lambda = 0.0;  // Lagrange multiplier
 
+DistanceConstraint(Connector c1, Connector c2, double d)
+    : connectors({c1, c2}), target_distance(d) {}
+
+  void applyForce(MassSpringSystem<D> & mss, VectorView<double> x, VectorView<double> f)
+  { 
+    auto xmat = x.asMatrix(mss.masses().size(),D);
+    auto fmat = f.asMatrix(mss.masses().size(),D);
+
+    Vec<D> p1 = (connectors[0].type == Connector::FIX) ? 
+                 mss.fixes()[connectors[0].nr].pos : xmat.row(connectors[0].nr);
+    Vec<D> p2 = (connectors[1].type == Connector::FIX) ? 
+                 mss.fixes()[connectors[1].nr].pos : xmat.row(connectors[1].nr);
+
+    Vec<D> diff = p2 - p1;
+    double dist = norm(diff);
+    Vec<D> grad = diff / dist;
+
+      if (connectors[0].type == Connector::MASS)
+        fmat.row(connectors[0].nr) -= lambda * grad / mss.masses()[connectors[0].nr].mass;
+      if (connectors[1].type == Connector::MASS)
+        fmat.row(connectors[1].nr) += lambda * grad / mss.masses()[connectors[1].nr].mass;
+  }
+
+// Evaluate constraint violation
+  double evaluate(MassSpringSystem<D> & mss, VectorView<double> x)
+
+  {
+    auto xmat = x.asMatrix(mss.masses().size(), D);
+    Vec<D> p1 = (connectors[0].type == Connector::FIX) ? 
+                 mss.fixes()[connectors[0].nr].pos : xmat.row(connectors[0].nr);
+    Vec<D> p2 = (connectors[1].type == Connector::FIX) ? 
+                 mss.fixes()[connectors[1].nr].pos : xmat.row(connectors[1].nr);
+    return norm(p2 - p1) - target_distance;
+  }
+  
+  
+  
+};
 #endif

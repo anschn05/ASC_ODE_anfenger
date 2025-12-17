@@ -14,6 +14,10 @@ f1 = mss.add (Fix( (0,0,0)) )
 mss.add (Spring(1, 10, (f1, mA)))
 mss.add (Spring(1, 20, (mA, mB)))
 
+# Add distance constraints with Lagrange multipliers
+constraint_AB = DistanceConstraint(mA, mB, 1.5)
+mss.add_constraint(constraint_AB)
+
 
 print ("state = ", mss.getState())
 
