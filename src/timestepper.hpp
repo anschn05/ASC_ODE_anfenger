@@ -87,6 +87,47 @@ namespace ASC_ode
     ImprovedEuler(std::shared_ptr<NonlinearFunction> rhs) 
     : TimeStepper(rhs), m_vecf(rhs->dimF()) {}
 
+ class ImprovedEuler : public TimeStepper
+  {
+    Vector<> m_vecf;
+  public:
+    ImprovedEuler(std::shared_ptr<NonlinearFunction> rhs) 
+    : TimeStepper(rhs), m_vecf(rhs->dimF()) {}
+
+
+    void doStep(double tau, VectorView<double> y) override
+    {
+      this->m_rhs->evaluate(y, m_vecf);
+      Vector<double> y_welle = y + tau/2 * m_vecf;
+
+      this->m_rhs->evaluate(y_welle, m_vecf);
+      y += tau * m_vecf;
+    }
+  };
+
+   class CrankNicolson : public TimeStepper
+  {
+    std::shared_ptr<NonlinearFunction> m_equ;
+    std::shared_ptr<Parameter> m_tau;
+    std::shared_ptr<ConstantFunction> m_yold;
+  public:
+    CrankNicolson(std::shared_ptr<NonlinearFunction> rhs) 
+    : TimeStepper(rhs), m_tau(std::make_shared<Parameter>(0.0)) 
+    {
+      m_yold = std::make_shared<ConstantFunction>(rhs->dimX());
+      auto ynew = std::make_shared<IdentityFunction>(rhs->dimX());
+      auto f_old = Compose(m_rhs, m_yold);
+      auto f_new = m_rhs;
+      m_equ = ynew - m_yold - (0.5 * (m_tau * (f_old + f_new)));
+    }
+
+    void doStep(double tau, VectorView<double> y) override
+    {
+      m_yold->set(y);
+      m_tau->set(tau);
+      NewtonSolver(m_equ, y);
+    }
+  };
 
     void doStep(double tau, VectorView<double> y) override
     {
