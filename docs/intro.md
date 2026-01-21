@@ -3,8 +3,8 @@
 ## This project was made/changed by
 ### Martin S.
 ### Anna S.
-### Emanuel
-### Victoria K
+### Emanuel S.
+### Victoria K.
 
 ASC-ODE is is a C++ library for solving ordinary differential equations (ODEs).
 The equation is defined by the right hand side function.
