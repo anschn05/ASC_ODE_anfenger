@@ -8,7 +8,8 @@
 
 #include <nonlinfunc.hpp>
 #include <timestepper.hpp>
-
+#include <implicitRK.hpp>
+#include <explicitRK.hpp>
 
 using namespace ASC_ode;
 
@@ -68,18 +69,57 @@ public:
 };
 
 
-
 int main()
 {
-  double tend = 0.1;
+  double tend = 4*M_PI;
   int steps = 1000;
   double tau = tend/steps;
 
-  Vector<> y = { 0, 0 };  // initializer list
-  auto rhs = std::make_shared<RCSpring>(100.0, 1e-6);
+  Vector<> y = { 1, 0 };  // initializer list
+  auto rhs = std::make_shared<MassSpring>(1.0, 1.0);
   
-  ImplicitEuler stepper(rhs);
+
+
+
+/*
+  Vector<> Radau(3), RadauWeight(3);
+  GaussRadau (Radau, RadauWeight);
+  // not sure about weights, comput them via ComputeABfromC
+  cout << "Radau = " << Radau << ", weight = " << RadauWeight <<  endl;
+*/
+ 
+
+  // ExplicitEuler stepper(rhs);
   // ImplicitEuler stepper(rhs);
+
+  ImplicitRungeKutta stepper(rhs, Gauss2a, Gauss2b, Gauss2c);
+
+  // Gauss3c .. points tabulated, compute a,b:
+  // auto [Gauss3a,Gauss3b] = computeABfromC (Gauss3c);
+  // ImplicitRungeKutta stepper(rhs, Gauss3a, Gauss3b, Gauss3c);
+
+
+  /*
+  // arbitrary order Gauss-Legendre
+  int stages = 5;
+  Vector<> c(stages), b1(stages);
+  GaussLegendre(c, b1);
+
+  auto [a, b] = computeABfromC(c);
+  ImplicitRungeKutta stepper(rhs, a, b, c);
+  */
+
+  /*
+  // arbitrary order Radau
+  int stages = 5;
+  Vector<> c(stages), b1(stages);
+  GaussRadau(c, b1);
+
+  auto [a, b] = computeABfromC(c);
+  ImplicitRungeKutta stepper(rhs, a, b, c);
+  */
+  // ExplicitRungeKutta stepper(rhs, Gauss2a, Gauss2b, Gauss2c);
+
 
   std::ofstream outfile ("output_test_ode.txt");
   std::cout << 0.0 << "  " << y(0) << " " << y(1) << std::endl;

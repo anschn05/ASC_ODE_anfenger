@@ -20,6 +20,7 @@ namespace ASC_ode
     virtual void doStep(double tau, VectorView<double> y) = 0;
   };
 
+<<<<<<< HEAD
   // //-------------
   // class CrankNicolson : public TimeStepper
   // {
@@ -47,6 +48,8 @@ namespace ASC_ode
   //   }
   // };
 
+=======
+>>>>>>> origin/Martin
   class ExplicitEuler : public TimeStepper
   {
     Vector<> m_vecf;
@@ -59,6 +62,7 @@ namespace ASC_ode
       y += tau * m_vecf;
     }
   };
+
   class ImplicitEuler : public TimeStepper
   {
     std::shared_ptr<NonlinearFunction> m_equ;
@@ -80,12 +84,6 @@ namespace ASC_ode
       NewtonSolver(m_equ, y);
     }
   };
-  class ImprovedEuler : public TimeStepper
-  {
-    Vector<> m_vecf;
-  public:
-    ImprovedEuler(std::shared_ptr<NonlinearFunction> rhs) 
-    : TimeStepper(rhs), m_vecf(rhs->dimF()) {}
 
 
     void doStep(double tau, VectorView<double> y) override
@@ -122,6 +120,7 @@ namespace ASC_ode
     }
   };
 
+<<<<<<< HEAD
     // void doStep(double tau, VectorView<double> y) override
     // {
     //   this->m_rhs->evaluate(y, m_vecf);
@@ -132,6 +131,9 @@ namespace ASC_ode
     // }
   //};
 
+=======
+  
+>>>>>>> origin/Martin
 
 }
 
