@@ -1,7 +1,7 @@
 # ASC-ODE
 A package for solving ordinary differential equations
 
-[our documentation}.(https://github.com/anschn05/ASC_ODE_anfenger/blob/vici/docs/intro.md)
+# Our documentation: https://github.com/anschn05/ASC_ODE_anfenger/blob/vici/docs/intro.md)
 
 Martin Strobl
 
