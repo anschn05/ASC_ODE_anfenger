@@ -1,4 +1,4 @@
-# Welcome to ASC-ODE's documentation!
+# Welcome to Anfengers's documentation!
 
 
 ASC-ODE is is a C++ library for solving ordinary differential equations (ODEs).
