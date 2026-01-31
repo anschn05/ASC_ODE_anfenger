@@ -14,7 +14,7 @@ Victoria Koller
 
 
 # 
-Read the [documentation](https://anschn05.github.io/ASC-ODE_anfenger\docs/intro.html)
+Read the [documentation](https://anschn05.github.io/ASC-ODE_anfenger/docs/intro.html)
 
 Find theory behind here: https://jschoeberl.github.io/IntroSC/ODEs/ODEs.html
 
