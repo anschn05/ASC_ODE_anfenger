@@ -1,5 +1,10 @@
 # Welcome to Anfengers's documentation!
 
+## This project was made/changed by
+### Martin Strobl 
+### Anna Sonnleitner
+### Emanuel Steininger
+### Victoria Koller
 
 ASC-ODE is is a C++ library for solving ordinary differential equations (ODEs).
 The equation is defined by the right hand side function.
