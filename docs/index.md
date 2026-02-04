@@ -11,12 +11,7 @@ The equation is defined by the right hand side function.
 ASC-ODE provides various time-steppers which may be used for odes with right hand sides
 given by a function object.
 
-A small demo for solving a mass-spring model as first order ODE
-\begin{eqnarray*}
-y_0^\prime & = & y_1 \\
-y_1^\prime & = & -\frac{k}{m} y_0
-\end{eqnarray*}
-is here:
+A small demo for solving a mass-spring model as first order ODE is here:
 
 ```cpp
 double tend = 4*M_PI;
@@ -36,15 +31,6 @@ for (int i = 0; i < steps; i++)
   }
 ```    
 
-The result of this simulation in phase space is shown here:
-
-```{image} pictures/massspring_phase.png
-:width: 40%
-:align: center
-```
-
-
-
 
 ## Installation
 
@@ -62,8 +48,6 @@ To configure and build some tests do
     make
     
 
-## Available time-stepping methods are
-...
 
 
 
